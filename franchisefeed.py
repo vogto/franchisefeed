@@ -139,9 +139,9 @@ with item_name_prep AS (
   ,isnull(case when cte2.item_offer_shipping_delivery_time::VARCHAR='UNKNOWN' then '' else cte2.item_offer_shipping_delivery_time::VARCHAR end,'0') as item_offer_shipping_delivery_time
   ,isnull(case when cte2.item_first_image_link='UNKNOWN' then '' else cte2.item_first_image_link end,'') as item_first_image_link
  from cte1 
- join cte2 on cte2.item_code=cte1.item_code
+ left join cte2 on cte2.item_code=cte1.item_code
  left join cte_eans on cte_eans.item_code=cte1.item_code
- left join item_name_prep on item_name_prep.item_code=cte1.item_code 
+ left join item_name_prep on item_name_prep.item_code=cte1.item_code
 """
 
 def export_to_csv():
