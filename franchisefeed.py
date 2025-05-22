@@ -30,7 +30,31 @@ EXPORT_FILENAME = "franchisefeed.csv"
 
 # SQL-Query
 SQL_QUERY = """
-with cte1 as (
+with item_name_prep AS (
+  SELECT
+  di.item_code,
+  di.item_name,
+  di.item_gtin,
+  MAX(CASE WHEN m.spras = 'E' THEN m.maktx END) AS en_maktx,
+  MAX(CASE WHEN m.spras = 'D' THEN m.maktx END) AS de_maktx,
+  MAX(CASE WHEN m.spras = 'K' THEN m.maktx END) AS k_maktx,
+  mtp.name_de
+  FROM star_analytical.d_item di
+  LEFT JOIN  sap_erp_replication_spectrum.makt m ON di.item_code = m.matnr
+  LEFT JOIN (
+      SELECT 
+      id as item_code,
+      name_de 
+      FROM module_tool.products
+      WHERE meta_date = (SELECT max(meta_date) FROM module_tool.products)
+      QUALIFY ROW_NUMBER() OVER (PARTITION BY id, name_de) = 1
+  ) AS mtp
+  ON mtp.item_code = di.item_code
+  WHERE 
+    di.item_purchaser_group='B01'
+  GROUP BY di.item_code, di.item_name, di.item_gtin, mtp.name_de
+)
+,cte1 as (
   select 
     item_code
     ,item_parent_name
@@ -98,8 +122,8 @@ with cte1 as (
 
  select 
  	 cte1.item_code
-	,coalesce(nullif(TRIM(cte_en_name.item_cleaned_name),''), cte1.item_parent_name) as description  
-  ,case when TRIM(cte_en_name.item_cleaned_name)!='' then cte_en_name.item_language else 'de_DE'::varchar end as item_language
+	,coalesce(nullif(TRIM(item_name_prep.en_maktx),''), item_name_prep.de_maktx) as description  
+  --,case when TRIM(item_name_prep.en_maktx)!='' then 'en_US'::varchar else 'de_DE'::varchar end as item_language
 	,case when cte1.item_series='UNKNOWN' then '' else cte1.item_series end as item_series
   ,isnull(cte2.item_attributes_legacy_sku,'') as item_attributes_legacy_sku
   ,case when cte2.item_attributes_ean='UNKNOWN' then '' else cte2.item_attributes_ean end as item_attributes_ean
@@ -116,9 +140,8 @@ with cte1 as (
   ,isnull(case when cte2.item_first_image_link='UNKNOWN' then '' else cte2.item_first_image_link end,'') as item_first_image_link
  from cte1 
  join cte2 on cte2.item_code=cte1.item_code
- join cte_eans on cte_eans.item_code=cte1.item_code
- join cte_en_name on cte_en_name.item_code=cte1.item_code
- 
+ left join cte_eans on cte_eans.item_code=cte1.item_code
+ left join item_name_prep on item_name_prep.item_code=cte1.item_code 
 """
 
 def export_to_csv():
