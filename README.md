@@ -23,7 +23,7 @@ Dieses Projekt exportiert Daten aus einer Amazon Redshift-Datenbank in eine CSV-
 cd /opt/franchisfeed
 python3 -m venv venv
 source venv/bin/activate
-pip install psycopg2-binary pandas paramiko python-dotenv
+pip install psycopg2-binary pandas paramiko python-dotenv import requests
 ```
 
 ---
@@ -44,6 +44,9 @@ SFTP_PORT=22
 SFTP_USER=xxx
 SFTP_PASSWORD=xxx
 SFTP_REMOTE_DIR=/
+
+# GOOGLE MSG
+GOOGLE_CHAT_WEBHOOK_URL=https://chat.googleapis.com/v1/spaces/AAA.../messages?key=...&token=...
 ```
 
 ---
