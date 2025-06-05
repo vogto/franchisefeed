@@ -4,10 +4,26 @@ import os
 import psycopg2
 import pandas as pd
 import paramiko
+import requests
 from dotenv import load_dotenv
 
 # Lade Umgebungsvariablen aus .env-Datei
 load_dotenv("/opt/franchisfeed/.env")
+
+def send_error_notification(message):
+    webhook_url = os.getenv("GOOGLE_CHAT_WEBHOOK_URL")
+    if webhook_url:
+        payload = {
+            "text": f"❗ *Fehler beim franchisefeed.py-Skript*\n\n```{message}```"
+        }
+        try:
+            response = requests.post(webhook_url, json=payload)
+            if response.status_code != 200:
+                print(f"Fehler beim Senden der Google Chat Nachricht: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Fehler beim Versenden der Benachrichtigung: {e}")
+    else:
+        print("GOOGLE_CHAT_WEBHOOK_URL ist nicht gesetzt.")
 
 # Redshift-Verbindungsdaten
 DB_PARAMS = {
@@ -69,7 +85,7 @@ with item_name_prep AS (
     ,item_net_weight
     ,item_first_sellable_date  	
   	,item_purchaser_group
-  from star_analytical.d_item 
+  from star_analytical.d_item
   where   	
   	item_purchaser_group='B01'
   	--and	item_code='000000001000341553' 
@@ -156,6 +172,7 @@ def export_to_csv():
             df.to_csv(EXPORT_FILENAME, index=False, sep=';', quoting=1, quotechar='"')
             print("✅ CSV erfolgreich erstellt.")                
     except Exception as e:
+        send_error_notification(str(e)) 
         print(f"❌ Fehler beim Export: {e}")
     finally:
         if 'conn' in locals():
@@ -172,8 +189,13 @@ def upload_to_sftp():
         sftp.close()
         transport.close()
     except Exception as e:
+        send_error_notification(str(e)) 
         print(f"❌ Fehler beim SFTP-Upload: {e}")
 
 if __name__ == "__main__":
-    export_to_csv()
-    upload_to_sftp()
+    try:
+        export_to_csv()
+        upload_to_sftp()
+    except Exception as e:
+        send_error_notification(str(e))
+        raise  # Optional: Fehler erneut auslösen, um Logging/Systemüberwachung zu unterstützen
