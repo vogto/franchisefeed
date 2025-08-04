@@ -100,7 +100,6 @@ with item_name_prep AS (
     ,item_catalog.item_attributes_material_detail
     ,item_catalog.item_attributes_color_detail
     ,item_catalog.item_attributes_color
-    ,item_catalog.item_attributes_color_sub_color
     ,item_catalog.item_attributes_height
     ,item_catalog.item_attributes_width
     ,item_catalog.item_attributes_depth
